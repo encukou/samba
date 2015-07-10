@@ -17,6 +17,7 @@
 */
 
 #include <Python.h>
+#include <py3c.h>
 #include "includes.h"
 #include "pycredentials.h"
 #include "param/param.h"
@@ -26,13 +27,11 @@
 #include "param/pyparam.h"
 #include <tevent.h>
 
-void initcredentials(void);
-
-static PyObject *PyString_FromStringOrNULL(const char *str)
+static PyObject *PyStr_FromStringOrNULL(const char *str)
 {
 	if (str == NULL)
 		Py_RETURN_NONE;
-	return PyString_FromString(str);
+	return PyStr_FromString(str);
 }
 
 static PyObject *py_creds_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
@@ -42,7 +41,7 @@ static PyObject *py_creds_new(PyTypeObject *type, PyObject *args, PyObject *kwar
 
 static PyObject *py_creds_get_username(PyObject *self, PyObject *unused)
 {
-	return PyString_FromStringOrNULL(cli_credentials_get_username(PyCredentials_AsCliCredentials(self)));
+	return PyStr_FromStringOrNULL(cli_credentials_get_username(PyCredentials_AsCliCredentials(self)));
 }
 
 static PyObject *py_creds_set_username(PyObject *self, PyObject *args)
@@ -61,7 +60,7 @@ static PyObject *py_creds_set_username(PyObject *self, PyObject *args)
 
 static PyObject *py_creds_get_password(PyObject *self, PyObject *unused)
 {
-	return PyString_FromStringOrNULL(cli_credentials_get_password(PyCredentials_AsCliCredentials(self)));
+	return PyStr_FromStringOrNULL(cli_credentials_get_password(PyCredentials_AsCliCredentials(self)));
 }
 
 
@@ -81,7 +80,7 @@ static PyObject *py_creds_set_password(PyObject *self, PyObject *args)
 
 static PyObject *py_creds_get_domain(PyObject *self, PyObject *unused)
 {
-	return PyString_FromStringOrNULL(cli_credentials_get_domain(PyCredentials_AsCliCredentials(self)));
+	return PyStr_FromStringOrNULL(cli_credentials_get_domain(PyCredentials_AsCliCredentials(self)));
 }
 
 static PyObject *py_creds_set_domain(PyObject *self, PyObject *args)
@@ -100,7 +99,7 @@ static PyObject *py_creds_set_domain(PyObject *self, PyObject *args)
 
 static PyObject *py_creds_get_realm(PyObject *self, PyObject *unused)
 {
-	return PyString_FromStringOrNULL(cli_credentials_get_realm(PyCredentials_AsCliCredentials(self)));
+	return PyStr_FromStringOrNULL(cli_credentials_get_realm(PyCredentials_AsCliCredentials(self)));
 }
 
 static PyObject *py_creds_set_realm(PyObject *self, PyObject *args)
@@ -119,7 +118,7 @@ static PyObject *py_creds_set_realm(PyObject *self, PyObject *args)
 
 static PyObject *py_creds_get_bind_dn(PyObject *self, PyObject *unused)
 {
-	return PyString_FromStringOrNULL(cli_credentials_get_bind_dn(PyCredentials_AsCliCredentials(self)));
+	return PyStr_FromStringOrNULL(cli_credentials_get_bind_dn(PyCredentials_AsCliCredentials(self)));
 }
 
 static PyObject *py_creds_set_bind_dn(PyObject *self, PyObject *args)
@@ -133,7 +132,7 @@ static PyObject *py_creds_set_bind_dn(PyObject *self, PyObject *args)
 
 static PyObject *py_creds_get_workstation(PyObject *self, PyObject *unused)
 {
-	return PyString_FromStringOrNULL(cli_credentials_get_workstation(PyCredentials_AsCliCredentials(self)));
+	return PyStr_FromStringOrNULL(cli_credentials_get_workstation(PyCredentials_AsCliCredentials(self)));
 }
 
 static PyObject *py_creds_set_workstation(PyObject *self, PyObject *args)
@@ -197,7 +196,7 @@ static PyObject *py_creds_get_nt_hash(PyObject *self, PyObject *unused)
 	struct cli_credentials *creds = PyCredentials_AsCliCredentials(self);
 	struct samr_Password *ntpw = cli_credentials_get_nt_hash(creds, creds);
 
-	ret = PyString_FromStringAndSize(discard_const_p(char, ntpw->hash), 16);
+	ret = PyBytes_FromStringAndSize(discard_const_p(char, ntpw->hash), 16);
 	TALLOC_FREE(ntpw);
 	return ret;
 }
@@ -231,7 +230,7 @@ static PyObject *py_creds_set_krb_forwardable(PyObject *self, PyObject *args)
 
 static PyObject *py_creds_get_forced_sasl_mech(PyObject *self, PyObject *unused)
 {
-	return PyString_FromStringOrNULL(cli_credentials_get_forced_sasl_mech(PyCredentials_AsCliCredentials(self)));
+	return PyStr_FromStringOrNULL(cli_credentials_get_forced_sasl_mech(PyCredentials_AsCliCredentials(self)));
 }
 
 static PyObject *py_creds_set_forced_sasl_mech(PyObject *self, PyObject *args)
@@ -470,29 +469,39 @@ PyTypeObject PyCredentialCacheContainer = {
 	.tp_flags = Py_TPFLAGS_DEFAULT,
 };
 
-void initcredentials(void)
+#define MODULE_DOC "Credentials management."
+
+static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    .m_name = "credentials",
+    .m_doc = MODULE_DOC,
+    .m_size = -1,
+};
+
+MODULE_INIT_FUNC(credentials)
 {
 	PyObject *m;
 	if (pytalloc_BaseObject_PyType_Ready(&PyCredentials) < 0)
-		return;
+		return NULL;
 
 	if (pytalloc_BaseObject_PyType_Ready(&PyCredentialCacheContainer) < 0)
-		return;
+		return NULL;
 
-	m = Py_InitModule3("credentials", NULL, "Credentials management.");
+	m = PyModule_Create(&moduledef);
 	if (m == NULL)
-		return;
+		return NULL;
 
-	PyModule_AddObject(m, "AUTO_USE_KERBEROS", PyInt_FromLong(CRED_AUTO_USE_KERBEROS));
-	PyModule_AddObject(m, "DONT_USE_KERBEROS", PyInt_FromLong(CRED_DONT_USE_KERBEROS));
-	PyModule_AddObject(m, "MUST_USE_KERBEROS", PyInt_FromLong(CRED_MUST_USE_KERBEROS));
+	PyModule_AddIntConstant(m, "AUTO_USE_KERBEROS", CRED_AUTO_USE_KERBEROS);
+	PyModule_AddIntConstant(m, "DONT_USE_KERBEROS", CRED_DONT_USE_KERBEROS);
+	PyModule_AddIntConstant(m, "MUST_USE_KERBEROS", CRED_MUST_USE_KERBEROS);
 
-	PyModule_AddObject(m, "AUTO_KRB_FORWARDABLE",  PyInt_FromLong(CRED_AUTO_KRB_FORWARDABLE));
-	PyModule_AddObject(m, "NO_KRB_FORWARDABLE",    PyInt_FromLong(CRED_NO_KRB_FORWARDABLE));
-	PyModule_AddObject(m, "FORCE_KRB_FORWARDABLE", PyInt_FromLong(CRED_FORCE_KRB_FORWARDABLE));
+	PyModule_AddIntConstant(m, "AUTO_KRB_FORWARDABLE",  CRED_AUTO_KRB_FORWARDABLE);
+	PyModule_AddIntConstant(m, "NO_KRB_FORWARDABLE",    CRED_NO_KRB_FORWARDABLE);
+	PyModule_AddIntConstant(m, "FORCE_KRB_FORWARDABLE", CRED_FORCE_KRB_FORWARDABLE);
 
 	Py_INCREF(&PyCredentials);
 	PyModule_AddObject(m, "Credentials", (PyObject *)&PyCredentials);
 	Py_INCREF(&PyCredentialCacheContainer);
 	PyModule_AddObject(m, "CredentialCacheContainer", (PyObject *)&PyCredentialCacheContainer);
+	return m;
 }
