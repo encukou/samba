@@ -57,6 +57,10 @@ PyObject *py_dcerpc_syntax_init_helper(PyTypeObject *type, PyObject *args, PyObj
 PyObject *py_return_ndr_struct(const char *module_name, const char *type_name,
 			       TALLOC_CTX *r_ctx, void *r);
 
+PyObject *PyStr_FromStringOrNULL(const char *str);
+#if PY_MAJOR_VERSION < 3
 PyObject *PyString_FromStringOrNULL(const char *str);
+#endif
+
 
 #endif /* __PYRPC_UTIL_H__ */

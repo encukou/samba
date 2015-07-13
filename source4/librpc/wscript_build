@@ -126,11 +126,15 @@ bld.SAMBA_LIBRARY('dcerpc',
 	vnum='0.0.1'
 	)
 
-bld.SAMBA_SUBSYSTEM('pyrpc_util',
-	source='rpc/pyrpc_util.c',
-	public_deps='pytalloc-util pyparam_util dcerpc MESSAGING',
-	pyext=True,
-	)
+for env in bld.gen_python_environments(['PKGCONFIGDIR']):
+	pyrpc_util = bld.pyembed_libname('pyrpc_util')
+	pytalloc_util = bld.pyembed_libname('pytalloc-util')
+	pyparam_util = bld.pyembed_libname('pyparam_util')
+	bld.SAMBA_SUBSYSTEM(pyrpc_util,
+		source='rpc/pyrpc_util.c',
+		public_deps='%s %s dcerpc MESSAGING' % (pytalloc_util, pyparam_util),
+		pyext=True,
+		)
 
 
 bld.SAMBA_PYTHON('python_dcerpc',

@@ -21,6 +21,7 @@
 */
 
 #include <Python.h>
+#include "python/py3compat.h"
 #include "includes.h"
 #include "librpc/rpc/pyrpc_util.h"
 #include "librpc/rpc/dcerpc.h"
@@ -383,10 +384,17 @@ PyObject *py_return_ndr_struct(const char *module_name, const char *type_name,
 	return pytalloc_reference_ex(py_type, r_ctx, r);
 }
 
-PyObject *PyString_FromStringOrNULL(const char *str)
+PyObject *PyStr_FromStringOrNULL(const char *str)
 {
 	if (str == NULL) {
 		Py_RETURN_NONE;
 	}
-	return PyString_FromString(str);
+	return PyStr_FromString(str);
 }
+
+#if PY_MAJOR_VERSION < 3
+/* Keep the Python 2 name for compatibility with code that's not yet ported. */
+PyObject *PyString_FromStringOrNULL(const char *str) {
+	return PyStr_FromStringOrNULL(str);
+}
+#endif
