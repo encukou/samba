@@ -36,22 +36,24 @@ bld.SAMBA_SUBSYSTEM('SECRETS',
 	)
 
 
-bld.SAMBA_PYTHON('pyparam',
-	source='pyparam.c',
-	deps='samba-hostconfig pytalloc-util',
-	realname='samba/param.so'
-	)
+for env in bld.gen_python_environments():
+	bld.SAMBA_PYTHON('pyparam',
+		source='pyparam.c',
+		deps='samba-hostconfig pytalloc-util',
+		realname='samba/param.so'
+		)
+
+	pyparam_util = bld.pyembed_libname('pyparam_util')
+	bld.SAMBA_SUBSYSTEM(pyparam_util,
+		source='pyparam_util.c',
+		deps='LIBPYTHON samba-hostconfig pytalloc-util',
+		pyext=True,
+		)
 
 bld.SAMBA_SUBSYSTEM('param_options',
 	source='loadparm.c',
 	deps='samba-hostconfig')
 
-
-bld.SAMBA_SUBSYSTEM('pyparam_util',
-	source='pyparam_util.c',
-	deps='LIBPYTHON samba-hostconfig pytalloc-util',
-	pyext=True,
-	)
 
 bld.SAMBA_LIBRARY('shares',
                   source=[],
