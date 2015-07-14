@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# install out various python scripts for use by make test
+bld.SAMBA_SCRIPT('samba_python_files',
+                 pattern='samba/**/*.py',
+                 installdir='python')
+
 bld.SAMBA_LIBRARY('samba_python',
 	source=[],
 	deps='LIBPYTHON pytalloc-util pyrpc_util',
@@ -7,25 +12,24 @@ bld.SAMBA_LIBRARY('samba_python',
 	private_library=True,
 	pyembed=True)
 
-bld.SAMBA_SUBSYSTEM('LIBPYTHON',
-	source='modules.c',
-	public_deps='',
-	init_function_sentinel='{NULL,NULL}',
-	deps='talloc',
-	pyext=True,
-	)
+for env in bld.gen_python_environments():
+	pytalloc_util = bld.pyembed_libname('pytalloc-util')
+	pyparam_util = bld.pyembed_libname('pyparam_util')
 
+	LIBPYTHON = bld.pyembed_libname('LIBPYTHON')
 
-bld.SAMBA_PYTHON('python_glue',
-	source='pyglue.c',
-	deps='pyparam_util samba-util netif pytalloc-util',
-	realname='samba/_glue.so'
-	)
+	bld.SAMBA_SUBSYSTEM(LIBPYTHON,
+		source='modules.c',
+		public_deps='',
+		init_function_sentinel='{NULL,NULL}',
+		deps='talloc',
+		pyext=True,
+		)
 
+	bld.SAMBA_PYTHON('python_glue',
+		source='pyglue.c',
+		deps='samba-util netif %s %s' % (pyparam_util, pytalloc_util),
+		realname='samba/_glue.so'
+		)
 
-# install out various python scripts for use by make test
-bld.SAMBA_SCRIPT('samba_python_files',
-                 pattern='samba/**/*.py',
-                 installdir='python')
-
-bld.INSTALL_WILDCARD('${PYTHONARCHDIR}', 'samba/**/*.py', flat=False)
+	bld.INSTALL_WILDCARD('${PYTHONARCHDIR}', 'samba/**/*.py', flat=False)

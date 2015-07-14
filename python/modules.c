@@ -22,9 +22,15 @@
 #include "python/modules.h"
 #include "dynconfig/dynconfig.h"
 
+#if PY_MAJOR_VERSION >= 3
+#define PyStr_FromString PyUnicode_FromString
+#else
+#define PyStr_FromString PyString_FromString
+#endif
+
 static bool PySys_PathPrepend(PyObject *list, const char *path)
 {
-	PyObject *py_path = PyString_FromString(path);
+	PyObject *py_path = PyStr_FromString(path);
 	if (py_path == NULL)
 		return false;
 
