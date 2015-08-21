@@ -18,6 +18,7 @@
 */
 
 #include <Python.h>
+#include "python/py3compat.h"
 #include "includes.h"
 #include <ldb.h>
 #include <pyldb.h>
@@ -28,8 +29,6 @@
 #include "auth/kerberos/kerberos.h"
 #include "librpc/rpc/pyrpc_util.h"
 #include "lib/policy/policy.h"
-
-void initdsdb(void);
 
 /* FIXME: These should be in a header file somewhere */
 #define PyErr_LDB_OR_RAISE(py_ldb, ldb) \
@@ -90,7 +89,7 @@ static PyObject *py_samdb_server_site_name(PyObject *self, PyObject *args)
 		return NULL;
 	}
 
-	result = PyString_FromString(site);
+	result = PyStr_FromString(site);
 	talloc_free(mem_ctx);
 	return result;
 }
@@ -116,24 +115,25 @@ static PyObject *py_dsdb_convert_schema_to_openldap(PyObject *self,
 		return NULL;
 	} 
 
-	ret = PyString_FromString(retstr);
+	ret = PyStr_FromString(retstr);
 	talloc_free(retstr);
 	return ret;
 }
 
 static PyObject *py_samdb_set_domain_sid(PyLdbObject *self, PyObject *args)
 { 
-	PyObject *py_ldb, *py_sid;
+	PyObject *py_ldb;
+	const char *sid_str;
 	struct ldb_context *ldb;
 	struct dom_sid *sid;
 	bool ret;
 
-	if (!PyArg_ParseTuple(args, "OO", &py_ldb, &py_sid))
+	if (!PyArg_ParseTuple(args, "Os", &py_ldb, &sid_str))
 		return NULL;
 	
 	PyErr_LDB_OR_RAISE(py_ldb, ldb);
 
-	sid = dom_sid_parse_talloc(NULL, PyString_AsString(py_sid));
+	sid = dom_sid_parse_talloc(NULL, sid_str);
 	if (sid == NULL) {
 		PyErr_NoMemory();
 		return NULL;
@@ -206,7 +206,7 @@ static PyObject *py_samdb_get_domain_sid(PyLdbObject *self, PyObject *args)
 		PyErr_NoMemory();
 		return NULL;
 	}
-	ret = PyString_FromString(retstr);
+	ret = PyStr_FromString(retstr);
 	talloc_free(retstr);
 	return ret;
 }
@@ -236,7 +236,7 @@ static PyObject *py_samdb_ntds_invocation_id(PyObject *self, PyObject *args)
 		PyErr_NoMemory();
 		return NULL;
 	}
-	result = PyString_FromString(retstr);
+	result = PyStr_FromString(retstr);
 	talloc_free(retstr);
 	return result;
 }
@@ -278,7 +278,7 @@ static PyObject *py_dsdb_get_oid_from_attid(PyObject *self, PyObject *args)
 		return NULL;
 	}
 
-	ret = PyString_FromString(oid);
+	ret = PyStr_FromString(oid);
 
 	talloc_free(mem_ctx);
 
@@ -433,7 +433,7 @@ static PyObject *py_dsdb_get_backlink_from_lDAPDisplayName(PyObject *self, PyObj
 		Py_RETURN_NONE;
 	}
 
-	return PyString_FromString(target_attr->lDAPDisplayName);
+	return PyStr_FromString(target_attr->lDAPDisplayName);
 }
 
 
@@ -463,7 +463,7 @@ static PyObject *py_dsdb_get_lDAPDisplayName_by_attid(PyObject *self, PyObject *
 		return NULL;
 	}
 
-	return PyString_FromString(a->lDAPDisplayName);
+	return PyStr_FromString(a->lDAPDisplayName);
 }
 
 
@@ -496,7 +496,7 @@ static PyObject *py_dsdb_get_syntax_oid_from_lDAPDisplayName(PyObject *self, PyO
 		return NULL;
 	}
 
-	return PyString_FromString(attribute->syntax->ldap_oid);
+	return PyStr_FromString(attribute->syntax->ldap_oid);
 }
 
 /*
@@ -576,13 +576,14 @@ static PyObject *py_dsdb_DsReplicaAttribute(PyObject *self, PyObject *args)
 
 		for (i = 0; i < el->num_values; i++) {
 			PyObject *item = PyList_GetItem(el_list, i);
-			if (!PyString_Check(item)) {
+			Py_ssize_t size;
+			if (!PyStr_Check(item)) {
 				PyErr_Format(PyExc_TypeError, "ldif_elements should be strings");
 				talloc_free(tmp_ctx);
 				return NULL;
 			}
-			el->values[i].data = (uint8_t *)PyString_AsString(item);
-			el->values[i].length = PyString_Size(item);
+			el->values[i].data = (uint8_t *)PyStr_AsUTF8AndSize(item, &size);
+			el->values[i].length = size;
 		}
 	}
 
@@ -683,13 +684,14 @@ static PyObject *py_dsdb_normalise_attributes(PyObject *self, PyObject *args)
 
 		for (i = 0; i < el->num_values; i++) {
 			PyObject *item = PyList_GetItem(el_list, i);
-			if (!PyString_Check(item)) {
+			Py_ssize_t size;
+			if (!PyStr_Check(item)) {
 				PyErr_Format(PyExc_TypeError, "ldif_elements should be strings");
 				talloc_free(tmp_ctx);
 				return NULL;
 			}
-			el->values[i].data = (uint8_t *)PyString_AsString(item);
-			el->values[i].length = PyString_Size(item);
+			el->values[i].data = (uint8_t *)PyStr_AsUTF8AndSize(item, &size);
+			el->values[i].length = size;
 		}
 	}
 
@@ -756,15 +758,16 @@ static PyObject *py_dsdb_normalise_attributes(PyObject *self, PyObject *args)
 
 static PyObject *py_dsdb_set_ntds_invocation_id(PyObject *self, PyObject *args)
 {
-	PyObject *py_ldb, *py_guid;
+	PyObject *py_ldb;
+	const char *guid_str;
 	bool ret;
 	struct GUID guid;
 	struct ldb_context *ldb;
-	if (!PyArg_ParseTuple(args, "OO", &py_ldb, &py_guid))
+	if (!PyArg_ParseTuple(args, "Os", &py_ldb, &guid_str))
 		return NULL;
 
 	PyErr_LDB_OR_RAISE(py_ldb, ldb);
-	GUID_from_string(PyString_AsString(py_guid), &guid);
+	GUID_from_string(guid_str, &guid);
 
 	if (GUID_all_zero(&guid)) {
 		PyErr_SetString(PyExc_RuntimeError, "set_ntds_invocation_id rejected due to all-zero invocation ID");
@@ -803,7 +806,7 @@ static PyObject *py_samdb_ntds_objectGUID(PyObject *self, PyObject *args)
 		PyErr_NoMemory();
 		return NULL;
 	}
-	result = PyString_FromString(retstr);
+	result = PyStr_FromString(retstr);
 	talloc_free(retstr);
 	return result;
 }
@@ -1144,16 +1147,23 @@ static PyMethodDef py_dsdb_methods[] = {
 	{ NULL }
 };
 
-void initdsdb(void)
+static struct PyModuleDef moduledef = {
+	PyModuleDef_HEAD_INIT,
+	.m_name = "dsdb",
+	.m_doc = "Python bindings for the directory service databases.",
+	.m_size = -1,
+	.m_methods = py_dsdb_methods,
+};
+
+MODULE_INIT_FUNC(dsdb)
 {
 	PyObject *m;
 
-	m = Py_InitModule3("dsdb", py_dsdb_methods, 
-			   "Python bindings for the directory service databases.");
+	m = PyModule_Create(&moduledef);
 	if (m == NULL)
-		return;
+		return NULL;
 
-#define ADD_DSDB_FLAG(val)  PyModule_AddObject(m, #val, PyInt_FromLong(val))
+#define ADD_DSDB_FLAG(val)  PyModule_AddIntConstant(m, #val, val)
 
 	/* "userAccountControl" flags */
 	ADD_DSDB_FLAG(UF_NORMAL_ACCOUNT);
@@ -1316,7 +1326,7 @@ void initdsdb(void)
 	ADD_DSDB_FLAG(GPO_INHERIT);
 	ADD_DSDB_FLAG(GPO_BLOCK_INHERITANCE);
 
-#define ADD_DSDB_STRING(val)  PyModule_AddObject(m, #val, PyString_FromString(val))
+#define ADD_DSDB_STRING(val)  PyModule_AddStringConstant(m, #val, val)
 
 	ADD_DSDB_STRING(DSDB_SYNTAX_BINARY_DN);
 	ADD_DSDB_STRING(DSDB_SYNTAX_STRING_DN);
@@ -1338,4 +1348,6 @@ void initdsdb(void)
 	ADD_DSDB_STRING(DS_GUID_PROGRAM_DATA_CONTAINER);
 	ADD_DSDB_STRING(DS_GUID_SYSTEMS_CONTAINER);
 	ADD_DSDB_STRING(DS_GUID_USERS_CONTAINER);
+
+	return m;
 }

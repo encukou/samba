@@ -306,9 +306,15 @@ static PyMethodDef py_dsdb_dns_methods[] = {
 	{ NULL }
 };
 
-void initdsdb_dns(void);
+static struct PyModuleDef moduledef = {
+	PyModuleDef_HEAD_INIT,
+	.m_name = "dsdb_dns",
+	.m_doc = "Python bindings for the DNS objects in the directory service databases.",
+	.m_size = -1,
+	.m_methods = py_dsdb_dns_methods,
+};
 
-void initdsdb_dns(void)
+MODULE_INIT_FUNC(dsdb_dns)
 {
 	PyObject *m;
 
