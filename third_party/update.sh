@@ -33,4 +33,14 @@ git clone git://git.samba.org/third_party/waf.waf15/ "$WORKDIR/waf"
 rm -rf "$WORKDIR/waf/.git"
 rsync -C -avz --delete "$WORKDIR/waf/" "$THIRD_PARTY_DIR/waf/"
 
+echo "Updating py3c..."
+git clone https://github.com/encukou/py3c "$WORKDIR/py3c"
+rm -rf "$WORKDIR/py3c/.git"
+# Also remove documentation & tests
+rm -rf "$WORKDIR/py3c/doc"
+rm -rf "$WORKDIR/py3c/CONTRIBUTING"
+rm -rf "$WORKDIR/py3c/CHANGELOG"
+rm -rf "$WORKDIR/py3c/test"
+rsync -C -avz --delete "$WORKDIR/py3c/" "$THIRD_PARTY_DIR/py3c/"
+
 rm -rf "$WORKDIR"
