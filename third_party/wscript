@@ -50,6 +50,10 @@ def configure(conf):
     conf.RECURSE('popt')
     conf.RECURSE('zlib')
 
+    if not conf.CHECK_PY3C():
+        conf.env.append_value('EXTRA_INCLUDES', ['#third_party/py3c/include'])
+        print(conf.env['EXTRA_INCLUDES'])
+
 
 def build(bld):
     list = []

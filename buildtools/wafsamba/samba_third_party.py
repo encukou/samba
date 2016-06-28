@@ -33,3 +33,9 @@ def CHECK_POPT(conf):
     return conf.CHECK_BUNDLED_SYSTEM('popt', checkfunctions='poptGetContext', headers='popt.h')
 
 Build.BuildContext.CHECK_POPT = CHECK_POPT
+
+@conf
+def CHECK_PY3C(conf):
+    return conf.CHECK_BUNDLED_SYSTEM('py3c')
+
+Build.BuildContext.CHECK_PY3C = CHECK_PY3C

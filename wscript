@@ -134,6 +134,11 @@ def configure(conf):
         else:
             conf.define('USING_SYSTEM_POPT', 1)
 
+        if not conf.CHECK_PY3C():
+            raise Utils.WafError('py3c development packages have not been found.\nIf third_party is installed, check that it is in the proper place.')
+        else:
+            conf.define('USING_SYSTEM_PY3C',1)
+
     conf.RECURSE('lib/ldb')
 
     if not (Options.options.without_ad_dc):
