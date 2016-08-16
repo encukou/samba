@@ -134,7 +134,7 @@ class TestCase(unittest.TestCase):
             try:
                 try:
                     self.setUp()
-                except SkipTest, e:
+                except SkipTest as e:
                     self._addSkip(result, str(e))
                     return
                 except KeyboardInterrupt:
@@ -147,7 +147,7 @@ class TestCase(unittest.TestCase):
                 try:
                     testMethod()
                     ok = True
-                except SkipTest, e:
+                except SkipTest as e:
                     self._addSkip(result, str(e))
                     return
                 except self.failureException:
@@ -159,7 +159,7 @@ class TestCase(unittest.TestCase):
 
                 try:
                     self.tearDown()
-                except SkipTest, e:
+                except SkipTest as e:
                     self._addSkip(result, str(e))
                 except KeyboardInterrupt:
                     raise
@@ -893,5 +893,6 @@ def connect_samdb_env(env_url, env_username, env_password, lp=None):
 def delete_force(samdb, dn):
     try:
         samdb.delete(dn)
-    except ldb.LdbError, (num, errstr):
+    except ldb.LdbError as error:
+        (num, errstr) = error.args
         assert num == ldb.ERR_NO_SUCH_OBJECT, "ldb.delete() failed: %s" % errstr
