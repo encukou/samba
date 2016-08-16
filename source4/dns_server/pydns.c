@@ -20,6 +20,7 @@
 */
 
 #include <Python.h>
+#include "python/py3compat.h"
 #include "includes.h"
 #include <pyldb.h>
 #include <pytalloc.h>
@@ -314,12 +315,21 @@ static struct PyModuleDef moduledef = {
 	.m_methods = py_dsdb_dns_methods,
 };
 
+static struct PyModuleDef moduledef = {
+	PyModuleDef_HEAD_INIT,
+	.m_name = "dsdb_dns",
+	.m_doc = "Python bindings for the DNS objects in the directory service databases.",
+	.m_size = -1,
+	.m_methods = py_dsdb_dns_methods,
+};
+
 MODULE_INIT_FUNC(dsdb_dns)
 {
 	PyObject *m;
 
-	m = Py_InitModule3("dsdb_dns", py_dsdb_dns_methods,
-			   "Python bindings for the DNS objects in the directory service databases.");
+	m = PyModule_Create(&moduledef);
 	if (m == NULL)
-		return;
+		return NULL;
+
+	return m;
 }
