@@ -18,6 +18,7 @@
 */
 
 #include <Python.h>
+#include "python/py3compat.h"
 #include "includes.h"
 #include <structmember.h>
 #include "librpc/rpc/pyrpc.h"
@@ -28,16 +29,14 @@
 #include "auth/credentials/pycredentials.h"
 #include "auth/gensec/gensec.h"
 
-void initbase(void);
-
 static PyTypeObject dcerpc_InterfaceType;
 
 static PyTypeObject *ndr_syntax_id_Type;
 
-static bool PyString_AsGUID(PyObject *object, struct GUID *uuid)
+static bool PyStr_AsGUID(PyObject *object, struct GUID *uuid)
 {
 	NTSTATUS status;
-	status = GUID_from_string(PyString_AsString(object), uuid);
+	status = GUID_from_string(PyStr_AsString(object), uuid);
 	if (NT_STATUS_IS_ERR(status)) {
 		PyErr_SetNTSTATUS(status);
 		return false;
@@ -49,20 +48,20 @@ static bool ndr_syntax_from_py_object(PyObject *object, struct ndr_syntax_id *sy
 {
 	ZERO_STRUCTP(syntax_id);
 
-	if (PyString_Check(object)) {
-		return PyString_AsGUID(object, &syntax_id->uuid);
+	if (PyStr_Check(object)) {
+		return PyStr_AsGUID(object, &syntax_id->uuid);
 	} else if (PyTuple_Check(object)) {
 		if (PyTuple_Size(object) < 1 || PyTuple_Size(object) > 2) {
 			PyErr_SetString(PyExc_ValueError, "Syntax ID tuple has invalid size");
 			return false;
 		}
 
-		if (!PyString_Check(PyTuple_GetItem(object, 0))) {
+		if (!PyStr_Check(PyTuple_GetItem(object, 0))) {
 			PyErr_SetString(PyExc_ValueError, "Expected GUID as first element in tuple");
 			return false;
 		}
 
-		if (!PyString_AsGUID(PyTuple_GetItem(object, 0), &syntax_id->uuid)) 
+		if (!PyStr_AsGUID(PyTuple_GetItem(object, 0), &syntax_id->uuid))
 			return false;
 
 		if (!PyInt_Check(PyTuple_GetItem(object, 1))) {
@@ -87,7 +86,7 @@ static PyObject *py_iface_server_name(PyObject *obj, void *closure)
 	if (server_name == NULL)
 		Py_RETURN_NONE;
 
-	return PyString_FromString(server_name);
+	return PyStr_FromString(server_name);
 }
 
 static PyObject *py_ndr_syntax_id(struct ndr_syntax_id *syntax_id)
@@ -128,7 +127,7 @@ static PyObject *py_iface_session_key(PyObject *obj, void *closure)
 	NTSTATUS status = dcerpc_fetch_session_key(iface->pipe, &session_key);
 	PyErr_NTSTATUS_IS_ERR_RAISE(status);
 
-	return PyString_FromStringAndSize((const char *)session_key.data, session_key.length);
+	return PyStr_FromStringAndSize((const char *)session_key.data, session_key.length);
 }
 
 static PyObject *py_iface_user_session_key(PyObject *obj, void *closure)
@@ -166,7 +165,7 @@ static PyObject *py_iface_user_session_key(PyObject *obj, void *closure)
 		return NULL;
 	}
 
-	session_key_obj = PyString_FromStringAndSize((const char *)session_key.data,
+	session_key_obj = PyStr_FromStringAndSize((const char *)session_key.data,
 						     session_key.length);
 	talloc_free(mem_ctx);
 	return session_key_obj;
@@ -239,7 +238,7 @@ static PyObject *py_iface_request(PyObject *self, PyObject *args, PyObject *kwar
 
 	ZERO_STRUCT(data_out);
 
-	if (object != NULL && !PyString_AsGUID(object, &object_guid)) {
+	if (object != NULL && !PyStr_AsGUID(object, &object_guid)) {
 		talloc_free(mem_ctx);
 		return NULL;
 	}
@@ -260,7 +259,7 @@ static PyObject *py_iface_request(PyObject *self, PyObject *args, PyObject *kwar
 		return NULL;
 	}
 
-	ret = PyString_FromStringAndSize((char *)data_out.data, data_out.length);
+	ret = PyStr_FromStringAndSize((char *)data_out.data, data_out.length);
 
 	talloc_free(mem_ctx);
 	return ret;
@@ -417,7 +416,15 @@ static PyTypeObject py_bind_time_features_syntax_SyntaxType = {
 	.tp_new = py_bind_time_features_syntax_new,
 };
 
-void initbase(void)
+static struct PyModuleDef moduledef = {
+	PyModuleDef_HEAD_INIT,
+	.m_name = "base",
+	.m_doc = "DCE/RPC protocol implementation",
+	.m_size = -1,
+	.m_methods = NULL,
+};
+
+MODULE_INIT_FUNC(base)
 {
 	PyObject *m;
 	PyObject *dep_samba_dcerpc_misc;
@@ -447,7 +454,7 @@ void initbase(void)
 	if (PyType_Ready(&py_bind_time_features_syntax_SyntaxType) < 0)
 		return;
 
-	m = Py_InitModule3("base", NULL, "DCE/RPC protocol implementation");
+    m = PyModule_Create(&moduledef);
 	if (m == NULL)
 		return;
 
