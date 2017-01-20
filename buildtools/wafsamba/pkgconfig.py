@@ -38,7 +38,7 @@ def subst_at_vars(task):
     return 0
 
 
-def PKG_CONFIG_FILES(bld, pc_files, vnum=None):
+def PKG_CONFIG_FILES(bld, pc_files, vnum=None, source=None):
     '''install some pkg_config pc files'''
     dest = '${PKGCONFIGDIR}'
     dest = bld.EXPAND_VARIABLES(dest)
@@ -46,7 +46,7 @@ def PKG_CONFIG_FILES(bld, pc_files, vnum=None):
         base=os.path.basename(f)
         t = bld.SAMBA_GENERATOR('PKGCONFIG_%s' % base,
                                 rule=subst_at_vars,
-                                source=f+'.in',
+                                source=source or f+'.in',
                                 target=f)
         bld.add_manual_dependency(bld.path.find_or_declare(f), bld.env['PREFIX'])
         t.vars = []

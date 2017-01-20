@@ -8,6 +8,6 @@ Name: pyldb-util
 Description: Python bindings for LDB
 Version: @PACKAGE_VERSION@
 Requires: ldb
-Libs: @LIB_RPATH@ -L${libdir} -lpyldb-util
+Libs: @LIB_RPATH@ -L${libdir} -lpyldb-util@PYTHON_LIBNAME_SO_ABI_FLAG@
 Cflags: -I${includedir}
 URL: http://ldb.samba.org/
