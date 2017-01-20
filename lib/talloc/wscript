@@ -55,6 +55,7 @@ def configure(conf):
     conf.env.TALLOC_COMPAT1 = False
     if conf.env.standalone_talloc:
         conf.env.TALLOC_COMPAT1 = Options.options.TALLOC_COMPAT1
+        conf.env.TALLOC_VERSION = VERSION
 
     conf.CHECK_XSLTPROC_MANPAGES()
 
