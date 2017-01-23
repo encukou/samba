@@ -98,6 +98,15 @@
     PyMODINIT_FUNC PyInit_ ## name(void); \
     PyMODINIT_FUNC PyInit_ ## name(void)
 
+/* Objects handling */
+
+static PyObject *Capsule_FromVoidPtrAndContext(void *pointer, char *description, void *destructor) {
+  PyObject *_obj = NULL;
+  _obj = PyCapsule_New(pointer, NULL, destructor);
+  PyCapsule_SetContext(_obj, description);
+  return _obj;
+}
+
 #else
 
 /***** Python 2 *****/
@@ -162,6 +171,29 @@ typedef struct PyModuleDef {
     static PyObject *PyInit_ ## name(void)
 
 
-#endif
+#define __PyCapsule_GetField(capsule, field, error_value) \
+    ( PyCapsule_CheckExact(capsule) \
+        ? (((PyCObject *)capsule)->field) \
+        : (PyErr_SetString(PyExc_TypeError, "CObject required"), (error_value)) \
+    ) \
 
-#endif
+/* Objects handling */
+
+#define Capsule_FromVoidPtrAndContext(pointer, description, destructor) \
+    (PyCObject_FromVoidPtrAndDesc(pointer, description, destructor))
+
+#define PyCapsule_CheckExact(capsule) (PyCObject_Check(capsule))
+
+#define PyCapsule_GetPointer(capsule, name) \
+    (PyCObject_AsVoidPtr(capsule))
+
+#define PyCapsule_GetContext(capsule) \
+    __PyCapsule_GetField(capsule, desc, (void*) NULL)
+
+#define PyCapsule_New(pointer, name, destructor) \
+    (PyCObject_FromVoidPtr(pointer, (void (*)(void*)) (destructor)))
+
+
+#endif // PY_MAJOR_VERSION
+
+#endif // _SAMBA_PY3COMPAT_H_
