@@ -296,7 +296,7 @@ sub PythonStruct($$$$$$)
 		$self->deindent;
 		$self->pidl("}");
 		$self->pidl("");
-		$self->pidl("ret = PyString_FromStringAndSize((char *)blob.data, blob.length);");
+		$self->pidl("ret = PyBytes_FromStringAndSize((char *)blob.data, blob.length);");
 		$self->pidl("TALLOC_FREE(tmp_ctx);");
 		$self->pidl("return ret;");
 		$self->deindent;
@@ -361,7 +361,7 @@ sub PythonStruct($$$$$$)
 		$self->pidl("char *retstr;");
 		$self->pidl("");
 		$self->pidl("retstr = ndr_print_struct_string(pytalloc_get_mem_ctx(py_obj), (ndr_print_fn_t)ndr_print_$name, \"$name\", object);");
-		$self->pidl("ret = PyString_FromString(retstr);");
+		$self->pidl("ret = PyStr_FromString(retstr);");
 		$self->pidl("talloc_free(retstr);");
 		$self->pidl("");
 		$self->pidl("return ret;");
@@ -387,7 +387,7 @@ sub PythonStruct($$$$$$)
 	my $typeobject = "$name\_Type";
 	$self->pidl("static PyTypeObject $typeobject = {");
 	$self->indent;
-	$self->pidl("PyObject_HEAD_INIT(NULL) 0,");
+	$self->pidl("PyVarObject_HEAD_INIT(NULL, 0)");
 	$self->pidl(".tp_name = \"$modulename.$prettyname\",");
 	$self->pidl(".tp_getset = $getsetters,");
 	if ($docstring) {
@@ -542,7 +542,7 @@ sub PythonFunctionStruct($$$$)
 	$self->deindent;
 	$self->pidl("}");
 	$self->pidl("blob = ndr_push_blob(push);");
-	$self->pidl("ret = PyString_FromStringAndSize((char *)blob.data, blob.length);");
+	$self->pidl("ret = PyBytes_FromStringAndSize((char *)blob.data, blob.length);");
 	$self->pidl("TALLOC_FREE(push);");
 	$self->pidl("return ret;");
 	$self->deindent;
@@ -800,7 +800,7 @@ sub PythonFunctionStruct($$$$)
 	$self->pidl("call = &ndr_table_$iface\.calls[$fn->{OPNUM}];");
 	$self->pidl("");
 	$self->pidl("retstr = ndr_print_function_string(pytalloc_get_mem_ctx(py_obj), call->ndr_print, name, ndr_inout_flags, object);");
-	$self->pidl("ret = PyString_FromString(retstr);");
+	$self->pidl("ret = PyStr_FromString(retstr);");
 	$self->pidl("TALLOC_FREE(retstr);");
 	$self->pidl("");
 	$self->pidl("return ret;");
@@ -860,7 +860,7 @@ sub PythonFunctionStruct($$$$)
 	my $typeobject = "$name\_Type";
 	$self->pidl("static PyTypeObject $typeobject = {");
 	$self->indent;
-	$self->pidl("PyObject_HEAD_INIT(NULL) 0,");
+	$self->pidl("PyVarObject_HEAD_INIT(NULL, 0)");
 	$self->pidl(".tp_name = \"$modulename.$prettyname\",");
 	$self->pidl(".tp_getset = $getsetters,");
 	if ($docstring) {
@@ -1210,54 +1210,54 @@ sub PythonType($$$$)
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
-		$self->pidl("if (!PyCObject_Check(mem_ctx_obj)) {");
+		$self->pidl("if (!PyCapsule_CheckExact(mem_ctx_obj)) {");
 		$self->indent;
 		$self->pidl("PyErr_SetString(PyExc_TypeError, \"mem_ctx needs to be of type PyCObject!\");");
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
-		$self->pidl("mem_ctx_desc = (const char *)PyCObject_GetDesc(mem_ctx_obj);");
+		$self->pidl("mem_ctx_desc = (const char *)PyCapsule_GetContext(mem_ctx_obj);");
 		$self->indent;
 		$self->pidl("if (mem_ctx_desc == NULL) {");
-		$self->pidl("PyErr_SetString(PyExc_TypeError, \"mem_ctx hash no PyCObject_GetDesc()!\");");
+		$self->pidl("PyErr_SetString(PyExc_TypeError, \"mem_ctx hash no PyCapsule_GetContext()!\");");
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
 		$self->pidl("cmp = strncmp(mem_ctx_type, mem_ctx_desc, strlen(mem_ctx_type) + 1);");
 		$self->pidl("if (cmp != 0) {");
 		$self->indent;
-		$self->pidl("PyErr_Format(PyExc_TypeError, \"mem_ctx should have PyCObject_GetDesc() = %s!\", mem_ctx_type);");
+		$self->pidl("PyErr_Format(PyExc_TypeError, \"mem_ctx should have PyCapsule_GetContext() = %s!\", mem_ctx_type);");
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
-		$self->pidl("mem_ctx = PyCObject_AsVoidPtr(mem_ctx_obj);");
+		$self->pidl("mem_ctx =  PyCapsule_GetPointer(mem_ctx_obj, NULL);");
 		$self->pidl("if (mem_ctx == NULL) {");
 		$self->indent;
 		$self->pidl("PyErr_SetString(PyExc_TypeError, \"mem_ctx is NULL)!\");");
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
-		$self->pidl("if (!PyCObject_Check(in_obj)) {");
+		$self->pidl("if (!PyCapsule_CheckExact(in_obj)) {");
 		$self->indent;
 		$self->pidl("PyErr_SetString(PyExc_TypeError, \"in needs to be of type PyCObject!\");");
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
-		$self->pidl("in_desc = (const char *)PyCObject_GetDesc(in_obj);");
+		$self->pidl("in_desc = (const char *)PyCapsule_GetContext(in_obj);");
 		$self->indent;
 		$self->pidl("if (in_desc == NULL) {");
-		$self->pidl("PyErr_SetString(PyExc_TypeError, \"in hash no PyCObject_GetDesc()!\");");
+		$self->pidl("PyErr_SetString(PyExc_TypeError, \"in hash no PyCapsule_GetContext()!\");");
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
 		$self->pidl("cmp = strncmp(in_type, in_desc, strlen(in_type) + 1);");
 		$self->pidl("if (cmp != 0) {");
 		$self->indent;
-		$self->pidl("PyErr_Format(PyExc_TypeError, \"in should have PyCObject_GetDesc() = %s!\", in_type);");
+		$self->pidl("PyErr_Format(PyExc_TypeError, \"in should have PyCapsule_GetContext() = %s!\", in_type);");
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
-		$self->pidl("in = ($typename *)PyCObject_AsVoidPtr(in_obj);");
+		$self->pidl("in = ($typename *)PyCapsule_GetPointer(in_obj, NULL);");
 		$self->pidl("");
 		$self->pidl("return py_import_$d->{NAME}(mem_ctx, level, in);");
 		$self->deindent;
@@ -1289,27 +1289,27 @@ sub PythonType($$$$)
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
-		$self->pidl("if (!PyCObject_Check(mem_ctx_obj)) {");
+		$self->pidl("if (!PyCapsule_CheckExact(mem_ctx_obj)) {");
 		$self->indent;
 		$self->pidl("PyErr_SetString(PyExc_TypeError, \"mem_ctx needs to be of type PyCObject!\");");
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
-		$self->pidl("mem_ctx_desc = (const char *)PyCObject_GetDesc(mem_ctx_obj);");
+		$self->pidl("mem_ctx_desc = (const char *)PyCapsule_GetContext(mem_ctx_obj);");
 		$self->indent;
 		$self->pidl("if (mem_ctx_desc == NULL) {");
-		$self->pidl("PyErr_SetString(PyExc_TypeError, \"mem_ctx hash no PyCObject_GetDesc()!\");");
+		$self->pidl("PyErr_SetString(PyExc_TypeError, \"mem_ctx hash no PyCapsule_GetContext()!\");");
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
 		$self->pidl("cmp = strncmp(mem_ctx_type, mem_ctx_desc, strlen(mem_ctx_type) + 1);");
 		$self->pidl("if (cmp != 0) {");
 		$self->indent;
-		$self->pidl("PyErr_Format(PyExc_TypeError, \"mem_ctx should have PyCObject_GetDesc() = %s!\", mem_ctx_type);");
+		$self->pidl("PyErr_Format(PyExc_TypeError, \"mem_ctx should have PyCapsule_GetContext() = %s!\", mem_ctx_type);");
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
-		$self->pidl("mem_ctx = PyCObject_AsVoidPtr(mem_ctx_obj);");
+		$self->pidl("mem_ctx =  PyCapsule_GetPointer(mem_ctx_obj, NULL);");
 		$self->pidl("if (mem_ctx == NULL) {");
 		$self->indent;
 		$self->pidl("PyErr_SetString(PyExc_TypeError, \"mem_ctx is NULL)!\");");
@@ -1323,7 +1323,7 @@ sub PythonType($$$$)
 		$self->pidl("return NULL;");
 		$self->deindent;
 		$self->pidl("}");
-		$self->pidl("return PyCObject_FromVoidPtrAndDesc(out, discard_const_p(char, out_type), NULL);");
+		$self->pidl("return Capsule_FromVoidPtrAndContext(out, discard_const_p(char, out_type), NULL);");
 		$self->deindent;
 		$self->pidl("}");
 		$self->pidl("");
@@ -1359,7 +1359,7 @@ sub PythonType($$$$)
 		$self->pidl_hdr("static PyTypeObject $typeobject;\n");
 		$self->pidl("static PyTypeObject $typeobject = {");
 		$self->indent;
-		$self->pidl("PyObject_HEAD_INIT(NULL) 0,");
+		$self->pidl("PyVarObject_HEAD_INIT(NULL, 0)");
 		$self->pidl(".tp_name = \"$modulename.$prettyname\",");
 		$self->pidl(".tp_getset = $getsetters,");
 		if ($docstring) {
@@ -1482,7 +1482,7 @@ sub Interface($$$)
 
 		$self->pidl("static PyTypeObject $if_typename = {");
 		$self->indent;
-		$self->pidl("PyObject_HEAD_INIT(NULL) 0,");
+		$self->pidl("PyVarObject_HEAD_INIT(NULL, 0)");
 		$self->pidl(".tp_name = \"$basename.$interface->{NAME}\",");
 		$self->pidl(".tp_basicsize = sizeof(dcerpc_InterfaceObject),");
 		$self->pidl(".tp_doc = $docstring,");
@@ -1496,7 +1496,7 @@ sub Interface($$$)
 		$self->register_module_typeobject($interface->{NAME}, "&$if_typename", $interface->{ORIGINAL});
 		my $dcerpc_typename = $self->import_type_variable("samba.dcerpc.base", "ClientConnection");
 		$self->register_module_prereadycode(["$if_typename.tp_base = $dcerpc_typename;", ""]);
-		$self->register_module_postreadycode(["if (!PyInterface_AddNdrRpcMethods(&$if_typename, py_ndr_$interface->{NAME}\_methods))", "\treturn;", ""]);
+		$self->register_module_postreadycode(["if (!PyInterface_AddNdrRpcMethods(&$if_typename, py_ndr_$interface->{NAME}\_methods))", "\treturn NULL;", ""]);
 
 
 		$self->pidl("static PyObject *syntax_$interface->{NAME}_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)");
@@ -1522,7 +1522,7 @@ sub Interface($$$)
 
 		$self->pidl("static PyTypeObject $syntax_typename = {");
 		$self->indent;
-		$self->pidl("PyObject_HEAD_INIT(NULL) 0,");
+		$self->pidl("PyVarObject_HEAD_INIT(NULL, 0)");
 		$self->pidl(".tp_name = \"$basename.$interface->{NAME}_abstract_syntax\",");
 		$self->pidl(".tp_doc = $docstring,");
 		$self->pidl(".tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,");
@@ -1702,11 +1702,11 @@ sub ConvertStringFromPythonData($$$$$)
 	$self->deindent;
 	$self->pidl("}");
 
-	$self->pidl("test_str = PyString_AS_STRING(unicode);");
+	$self->pidl("test_str = PyBytes_AS_STRING(unicode);");
 	$self->deindent;
-	$self->pidl("} else if (PyString_Check($py_var)) {");
+	$self->pidl("} else if (PyBytes_Check($py_var)) {");
 	$self->indent;
-	$self->pidl("test_str = PyString_AS_STRING($py_var);");
+	$self->pidl("test_str = PyBytes_AS_STRING($py_var);");
 	$self->deindent;
 	$self->pidl("} else {");
 	$self->indent;
@@ -1892,7 +1892,7 @@ sub ConvertObjectFromPythonData($$$$$$;$$)
 	}
 
 	if ($actual_ctype->{TYPE} eq "SCALAR" and $actual_ctype->{NAME} eq "DATA_BLOB") {
-		$self->pidl("$target = data_blob_talloc($mem_ctx, PyString_AS_STRING($cvar), PyString_GET_SIZE($cvar));");
+		$self->pidl("$target = data_blob_talloc($mem_ctx, PyBytes_AS_STRING($cvar), PyBytes_GET_SIZE($cvar));");
 		return;
 	}
 
@@ -1927,12 +1927,12 @@ sub ConvertObjectFromPythonData($$$$$$;$$)
 	}
 
 	if ($actual_ctype->{TYPE} eq "SCALAR" and $actual_ctype->{NAME} eq "string_array") {
-		$self->pidl("$target = PyCObject_AsVoidPtr($cvar);");
+		$self->pidl("$target =  PyCapsule_GetPointer($cvar, NULL);");
 		return;
 	}
 
 	if ($actual_ctype->{TYPE} eq "SCALAR" and $actual_ctype->{NAME} eq "pointer") {
-		$self->assign($target, "PyCObject_AsVoidPtr($cvar)");
+		$self->assign($target, " PyCapsule_GetPointer($cvar, NULL)");
 		return;
 	}
 
@@ -2097,7 +2097,7 @@ sub ConvertScalarToPython($$$)
 	}
 
 	if ($ctypename eq "DATA_BLOB") {
-		return "PyString_FromStringAndSize((char *)($cvar).data, ($cvar).length)";
+		return "PyBytes_FromStringAndSize((char *)($cvar).data, ($cvar).length)";
 	}
 
 	if ($ctypename eq "NTSTATUS") {
@@ -2266,7 +2266,17 @@ sub ConvertObjectToPythonLevel($$$$$$)
 			$var_name = get_pointer_to($var_name);
 		}
 		my $conv = $self->ConvertObjectToPythonData($mem_ctx, $l->{DATA_TYPE}, $var_name, $e->{ORIGINAL});
-		$self->pidl("$py_var = $conv;");
+
+		if ($conv =~ /^pytalloc_CObject_FromTallocPtr/) {
+			(my $conv_with_pycapsule = $conv) =~ s/pytalloc_CObject_FromTallocPtr/pytalloc_PyCapsule_FromTallocPtr/;
+			$self->pidl("#if PY_MAJOR_VERSION >= 3");
+			$self->pidl("$py_var = $conv_with_pycapsule;");
+			$self->pidl("#else");
+			$self->pidl("$py_var = $conv;");
+			$self->pidl("#endif");
+		} else {
+			$self->pidl("$py_var = $conv;");
+		}
 	} elsif ($l->{TYPE} eq "SUBCONTEXT") {
 		$self->ConvertObjectToPythonLevel($mem_ctx, $env, $e, $nl, $var_name, $py_var, $fail);
 	} else {
@@ -2291,6 +2301,7 @@ sub Parse($$$$$)
 /* Python wrapper functions auto-generated by pidl */
 #define PY_SSIZE_T_CLEAN 1 /* We use Py_ssize_t for PyArg_ParseTupleAndKeywords */
 #include <Python.h>
+#include \"python/py3compat.h\"
 #include \"includes.h\"
 #include <pytalloc.h>
 #include \"librpc/rpc/pyrpc.h\"
@@ -2373,8 +2384,17 @@ static inline PyObject *ndr_PyLong_FromUnsignedLongLong(unsigned long long v)
 
 	$self->pidl("");
 
-	$self->pidl_hdr("void init$basename(void);");
-	$self->pidl("void init$basename(void)");
+	$self->pidl("static struct PyModuleDef moduledef = {");
+	$self->indent;
+	$self->pidl("PyModuleDef_HEAD_INIT,");
+	$self->pidl(".m_name = \"$basename\",");
+	$self->pidl(".m_doc = \"$basename DCE/RPC\",");
+	$self->pidl(".m_size = -1,");
+	$self->pidl(".m_methods = $basename\_methods,");
+	$self->deindent;
+	$self->pidl("};");
+
+	$self->pidl("MODULE_INIT_FUNC($basename)");
 	$self->pidl("{");
 	$self->indent;
 	$self->pidl("PyObject *m;");
@@ -2388,7 +2408,7 @@ static inline PyObject *ndr_PyLong_FromUnsignedLongLong(unsigned long long v)
 		my $module_path = $h->{'val'};
 		$self->pidl("$var_name = PyImport_ImportModule(\"$module_path\");");
 		$self->pidl("if ($var_name == NULL)");
-		$self->pidl("\treturn;");
+		$self->pidl("\treturn NULL;");
 		$self->pidl("");
 	}
 
@@ -2401,7 +2421,7 @@ static inline PyObject *ndr_PyLong_FromUnsignedLongLong(unsigned long long v)
 		$module_var =~ s/\./_/g;
 		$self->pidl("$type_var = (PyTypeObject *)PyObject_GetAttrString($module_var, \"$pretty_name\");");
 		$self->pidl("if ($type_var == NULL)");
-		$self->pidl("\treturn;");
+		$self->pidl("\treturn NULL;");
 		$self->pidl("");
 	}
 
@@ -2409,7 +2429,7 @@ static inline PyObject *ndr_PyLong_FromUnsignedLongLong(unsigned long long v)
 
 	foreach (@{$self->{ready_types}}) {
 		$self->pidl("if (PyType_Ready($_) < 0)");
-		$self->pidl("\treturn;");
+		$self->pidl("\treturn NULL;");
 	}
 
 	$self->pidl($_) foreach (@{$self->{postreadycode}});
@@ -2423,9 +2443,9 @@ static inline PyObject *ndr_PyLong_FromUnsignedLongLong(unsigned long long v)
 
 	$self->pidl("");
 
-	$self->pidl("m = Py_InitModule3(\"$basename\", $basename\_methods, \"$basename DCE/RPC\");");
+	$self->pidl("m = PyModule_Create(&moduledef);");
 	$self->pidl("if (m == NULL)");
-	$self->pidl("\treturn;");
+	$self->pidl("\treturn NULL;");
 	$self->pidl("");
 	foreach my $h (@{$self->{constants}}) {
 		my $pretty_name = PrettifyTypeName($h->{'key'}, $basename);
@@ -2434,7 +2454,7 @@ static inline PyObject *ndr_PyLong_FromUnsignedLongLong(unsigned long long v)
 		if ($cvar =~ /^[0-9]+$/ or $cvar =~ /^0x[0-9a-fA-F]+$/) {
 			$py_obj = "ndr_PyLong_FromUnsignedLongLong($cvar)";
 		} elsif ($cvar =~ /^".*"$/) {
-			$py_obj = "PyString_FromString($cvar)";
+			$py_obj = "PyStr_FromString($cvar)";
 		} else {
 			$py_obj = $self->ConvertObjectToPythonData("NULL", expandAlias($ctype), $cvar, undef);
 		}
@@ -2452,6 +2472,7 @@ static inline PyObject *ndr_PyLong_FromUnsignedLongLong(unsigned long long v)
 	$self->pidl("PY_MOD_".uc($basename)."_PATCH(m);");
 	$self->pidl("#endif");
 
+	$self->pidl("return m;");
 	$self->pidl("");
 	$self->deindent;
 	$self->pidl("}");
