@@ -3,6 +3,7 @@
 import os
 import Build, Logs, Utils, Configure
 from Configure import conf
+from wafsamba import Utils
 
 @conf
 def SAMBA_CHECK_PYTHON(conf, mandatory=True, version=(2,4,2)):
@@ -77,6 +78,36 @@ def _check_python_headers(conf, mandatory):
         conf.env['PYTHON_SO_ABI_FLAG'] = ''
     conf.env['PYTHON_LIBNAME_SO_ABI_FLAG'] = (
         conf.env['PYTHON_SO_ABI_FLAG'].replace('_', '-'))
+
+@conf
+def CHECK_BUNDLED_SYSTEM_PYTHON_PKG(conf, name, minversion, implied_deps,
+                                    onlyif=None):
+    libname = pyembed_libname(conf, name)
+
+    if conf.CHECK_BUNDLED_SYSTEM_PKG(libname,
+                                     minversion=minversion,
+                                     onlyif=onlyif,
+                                     implied_deps=implied_deps):
+
+        if conf.env['EXTRA_PYTHON']:
+            default_env = conf.env
+            try:
+                conf.env = conf.all_envs['extrapython']
+
+                libname = pyembed_libname(conf, name)
+                if not conf.CHECK_BUNDLED_SYSTEM_PKG(
+                        libname, minversion=minversion,
+                        implied_deps=implied_deps):
+                    raise Utils.WafError(
+                        '%s is configured as a system library, '
+                        'but a version for %s was not found on '
+                        'the system' % (name, conf.env['PYTHON']))
+
+            finally:
+                conf.env = default_env
+
+        return True
+    return False
 
 
 def SAMBA_PYTHON(bld, name,
