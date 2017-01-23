@@ -52,8 +52,9 @@ def configure(conf):
         if conf.CHECK_BUNDLED_SYSTEM_PKG('talloc', minversion=VERSION,
                                      implied_deps='replace'):
             conf.define('USING_SYSTEM_TALLOC', 1)
-        if conf.CHECK_BUNDLED_SYSTEM_PKG('pytalloc-util', minversion=VERSION,
-                                     implied_deps='talloc replace'):
+        if conf.CHECK_BUNDLED_SYSTEM_PYTHON_PKG(
+                'pytalloc-util', minversion=VERSION,
+                implied_deps='talloc replace'):
             conf.define('USING_SYSTEM_PYTALLOC_UTIL', 1)
 
     conf.env.TALLOC_COMPAT1 = False
