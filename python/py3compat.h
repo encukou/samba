@@ -98,6 +98,16 @@
     PyMODINIT_FUNC PyInit_ ## name(void); \
     PyMODINIT_FUNC PyInit_ ## name(void)
 
+/* Objects handling */
+
+static PyObject *Capsule_FromVoidPtrAndContext(void *pointer, char *description) {
+  PyObject *_obj = NULL;
+  _obj = PyCapsule_New(pointer, NULL, NULL);
+  if (_obj != NULL)
+      PyCapsule_SetContext(_obj, description);
+  return _obj;
+}
+
 #else
 
 /***** Python 2 *****/
@@ -161,7 +171,23 @@ typedef struct PyModuleDef {
     void init ## name(void) { PyInit_ ## name(); } \
     static PyObject *PyInit_ ## name(void)
 
+/* Objects handling */
 
-#endif
+#define Capsule_FromVoidPtrAndContext(pointer, description) \
+    (PyCObject_FromVoidPtrAndDesc(pointer, description, NULL))
 
-#endif
+#define PyCapsule_CheckExact(capsule) (PyCObject_Check(capsule))
+
+#define PyCapsule_GetPointer(capsule, name) \
+    (PyCObject_AsVoidPtr(capsule))
+
+#define PyCapsule_GetContext(capsule) \
+    PyCObject_GetDesc(capsule)
+
+#define PyCapsule_New(pointer, name, destructor) \
+    (PyCObject_FromVoidPtr(pointer, (void (*)(void*)) (destructor)))
+
+
+#endif // PY_MAJOR_VERSION
+
+#endif // _SAMBA_PY3COMPAT_H_
