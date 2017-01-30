@@ -187,13 +187,20 @@ _PUBLIC_ PyObject *pytalloc_reference_ex(PyTypeObject *py_type,
 	}
 }
 
-#if PY_MAJOR_VERSION < 3
-
 static void py_cobject_talloc_free(void *ptr)
 {
 	talloc_free(ptr);
 }
 
+#if PY_MAJOR_VERSION >= 3
+_PUBLIC_ PyObject *pytalloc_PyCapsule_FromTallocPtr(void *ptr)
+{
+	if (ptr == NULL) {
+		Py_RETURN_NONE;
+	}
+	return PyCapsule_New(ptr, NULL, py_cobject_talloc_free);
+}
+#else
 _PUBLIC_ PyObject *pytalloc_CObject_FromTallocPtr(void *ptr)
 {
 	if (ptr == NULL) {
@@ -201,7 +208,6 @@ _PUBLIC_ PyObject *pytalloc_CObject_FromTallocPtr(void *ptr)
 	}
 	return PyCObject_FromVoidPtr(ptr, py_cobject_talloc_free);
 }
-
 #endif
 
 _PUBLIC_ int pytalloc_Check(PyObject *obj)
